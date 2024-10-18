@@ -1,13 +1,5 @@
-const axios = require('axios');
 const { validateFlightQueryParams, validateHotelsQueryParams, validateSitesQueryParams } = require("../validations/index");
-const axiosInstance = axios.create({
-   baseURL: process.env.MICROSERVICE_BASE_URL,
-   headers: {
-      "Content-Type": "application/json",
-      CLIENT_KEY: process.env.CLIENT_KEY,
-      CLIENT_SECRET: process.env.CLIENT_SECRET,
-   },
-});
+const axiosInstance = require('../lib/axios.lib');
 
 
 const getFlightsByOriginAndDestination = async (req, res) => {
@@ -18,7 +10,13 @@ const getFlightsByOriginAndDestination = async (req, res) => {
       const response = await axiosInstance.get(`/flights/search?origin=${origin}&destination=${destination}`);
       res.json(response.data);
    } catch (error) {
-
+      console.error(error);
+      if (error.response && error.response.status === 429) {
+         return res.status(429).json({ error: "Rate limit exceeded. Please try again later." });
+      } else if (error.response && error.response.status === 500 && error.response.data.error === "Simulated error for testing purposes.") {
+         return res.status(500).json({ error: "Simulated error for testing purposes." });
+      }
+      res.status(500).json({ error: "Failed to fetch flights." });
    }
 };
 
